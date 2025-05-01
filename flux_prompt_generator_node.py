@@ -143,7 +143,21 @@ class FluxPromptGeneratorNode:
     @classmethod
     def get_ollama_client(cls, host=None):
         if not host:
-            host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+            # Try to get host from environment variable first
+            host = os.getenv('OLLAMA_HOST')
+            if not host:
+                # If not in env, try to read from config file
+                try:
+                    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+                    if os.path.exists(config_path):
+                        with open(config_path, 'r') as f:
+                            config = json.load(f)
+                            host = config.get('ollama_host', 'http://localhost:11434')
+                    else:
+                        host = 'http://localhost:11434'
+                except Exception as e:
+                    print(f"Error reading config file: {e}")
+                    host = 'http://localhost:11434'
         return Client(host=host)
 
     @classmethod
