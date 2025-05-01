@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 import time
 import ollama
+from ollama._client import Client
 
 class FluxPromptGenerator:
     def __init__(self):
@@ -125,16 +126,25 @@ class FluxPromptGenerator:
 class FluxPromptGeneratorNode:
     def __init__(self):
         self.generator = FluxPromptGenerator()
+        self.ollama_client = None
         self.ollama_models = self.get_ollama_models()
 
     @classmethod
     def get_ollama_models(cls):
         try:
-            models = ollama.list()
+            # Get the client with custom URL if provided
+            client = cls.get_ollama_client()
+            models = client.list()
             return [model['name'] for model in models['models']]
         except Exception as e:
             print(f"Error fetching Ollama models: {e}")
             return ["llama2"]  # Default model if fetch fails
+
+    @classmethod
+    def get_ollama_client(cls, host=None):
+        if not host:
+            host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+        return Client(host=host)
 
     @classmethod
     def INPUT_TYPES(s):
@@ -153,6 +163,7 @@ class FluxPromptGeneratorNode:
             "required": {
                 "use_ollama": ("BOOLEAN", {"default": True}),
                 "ollama_model": (ollama_models, {"default": ollama_models[0] if ollama_models else "llama2"}),
+                "ollama_host": ("STRING", {"default": "http://localhost:11434"}),
                 "happy_talk": ("BOOLEAN", {"default": True}),
                 "compress": ("BOOLEAN", {"default": True}),
                 "compression_level": (["soft", "medium", "hard"], {"default": "hard"}),
@@ -179,7 +190,7 @@ class FluxPromptGeneratorNode:
     OUTPUT_NODE = False
     CATEGORY = "prompt"
 
-    def generate(self, use_ollama, ollama_model, happy_talk, compress, compression_level, poster, custom_base_prompt, 
+    def generate(self, use_ollama, ollama_model, ollama_host, happy_talk, compress, compression_level, poster, custom_base_prompt, 
                  seed, custom, subject, OVERRIDE_STYLES, append_custom_base_prompt="", **kwargs):
         # Apply override styles
         if OVERRIDE_STYLES == "Set All Random":
@@ -194,7 +205,7 @@ class FluxPromptGeneratorNode:
         if use_ollama:
             final_prompt = self.generate_ollama(
                 ollama_model, initial_prompt, happy_talk, compress, compression_level, poster, 
-                custom_base_prompt, append_custom_base_prompt
+                custom_base_prompt, append_custom_base_prompt, ollama_host
             )
         else:
             final_prompt = initial_prompt
@@ -203,17 +214,18 @@ class FluxPromptGeneratorNode:
         return (final_prompt, choices_str)
 
     def generate_ollama(self, model, input_text, happy_talk, compress, compression_level, poster, 
-                        custom_base_prompt="", append_custom_base_prompt=""):
+                        custom_base_prompt="", append_custom_base_prompt="", ollama_host=None):
         base_prompt = self.get_base_prompt(happy_talk, compress, compression_level, poster, 
                                            custom_base_prompt, append_custom_base_prompt)
         
         prompt = f"{base_prompt}\nDescription: {input_text}"
         
-        print(f"Starting generation with Ollama {model}...")
+        print(f"Starting generation with Ollama {model} at {ollama_host}...")
         start_time = time.time()
 
         try:
-            response = ollama.generate(model=model, prompt=prompt)
+            client = self.get_ollama_client(ollama_host)
+            response = client.generate(model=model, prompt=prompt)
             output = response['response']
         except Exception as e:
             print(f"Error generating with Ollama: {e}")

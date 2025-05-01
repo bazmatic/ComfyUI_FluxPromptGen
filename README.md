@@ -13,6 +13,7 @@ Flux Prompt Generator is a custom node set for ComfyUI that enhances prompt gene
 - **Flux Image Caption Node**: Utilizes the Florence-2 model to generate detailed captions for input images.
 - Seamless integration with ComfyUI workflows.
 - Support for various prompt styles and customization options.
+- Configurable Ollama server URL for remote or local model serving.
 
 ## Installation
 
@@ -37,6 +38,7 @@ Flux Prompt Generator is a custom node set for ComfyUI that enhances prompt gene
    - Custom Input Prompt: Add your base prompt (optional).
    - Subject: Specify the main subject of the image.
    - Various style options: Customize the generated prompt.
+   - Ollama Host: Set the URL of your Ollama server (default: http://localhost:11434).
 
 ### Flux Image Caption Node
 
@@ -55,8 +57,12 @@ Flux Prompt Generator is a custom node set for ComfyUI that enhances prompt gene
 
 ## Requirements
 
-you need ollama running on ur pc
-u need some ollama model downloaded
+- Ollama server running either locally or remotely
+- At least one Ollama model downloaded on the server
+- You can configure the Ollama server URL through:
+  1. The node's "ollama_host" parameter
+  2. The OLLAMA_HOST environment variable
+  Default is http://localhost:11434
 
 ## Contributing
 
